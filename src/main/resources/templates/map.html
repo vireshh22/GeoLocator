@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 600px;
+            width: 100%;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+        }
+        .leaflet-popup-content {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script th:inline="javascript">
+        var latitude = [[${latitude}]];
+        var longitude = [[${longitude}]];
+
+        var map = L.map('map', {
+            center: [latitude, longitude],
+            zoom: 13,
+            zoomControl: true,
+            layers: [
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors',
+                    maxZoom: 19
+                })
+            ]
+        });
+
+        L.control.scale().addTo(map);
+
+        var geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false
+        }).addTo(map);
+
+        var marker = L.marker([latitude, longitude], {
+            draggable: true
+        }).addTo(map);
+
+        marker.on('dragend', function(e) {
+            var pos = marker.getLatLng();
+            updateMarkerInfo(pos.lat, pos.lng);
+        });
+
+        function updateMarkerInfo(lat, lng) {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    marker.bindPopup(`
+                        <b>Location Details:</b><br>
+                        Address: ${data.display_name}<br>
+                        Latitude: ${lat.toFixed(6)}<br>
+                        Longitude: ${lng.toFixed(6)}
+                    `).openPopup();
+                });
+        }
+        updateMarkerInfo(latitude, longitude);
+    </script>
+</body>
+</html>
